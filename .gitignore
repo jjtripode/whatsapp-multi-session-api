@@ -1,0 +1,4 @@
+.wwebjs_cache
+.DS_Store
+node_modules
+sessions
