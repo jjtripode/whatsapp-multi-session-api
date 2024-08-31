@@ -149,8 +149,9 @@
             <input type="text" id="sessionId" name="sessionId" readonly>
 
             <label for="userText">Personaliza tu bot:</label>
-            <textarea id="userText" name="userText"
-                placeholder="Eres un vendedor de productos online, tu catago esta disponible en esta url: www.tupagina.com. La forma de de pago es por qr, mercadopago:alias MiAlias.MercadoPago, Modo:MiAlias.Modo, transferencia:Mi.Alias.Banco. Si consulta por un producto que aun no recibio pregunta por el idenfificador del producto. Si consulta por un producto ya adquirido pregunta cual es motivo y solicita que te de mas detalle. El horario de atencion es de lun a vier de 9am a 19pm..."></textarea>
+            <textarea id="systemInstrucction" name="systemInstrucction">
+Eres un vendedor de productos online, tu catago esta disponible en esta url: www.tupagina.com. La forma de de pago es por qr, mercadopago:alias MiAlias.MercadoPago, Modo:MiAlias.Modo, transferencia:Mi.Alias.Banco. Si consulta por un producto que aun no recibio pregunta por el idenfificador del producto. Si consulta por un producto ya adquirido pregunta cual es motivo y solicita que te de mas detalle. El horario de atencion es de lun a vier de 9am a 19pm...
+            </textarea>
 
             <!-- <button type="submit">Comenzar</button> -->
             <button type="button" onclick="star()">Comenzar</button>
@@ -170,12 +171,14 @@
         document.getElementById('sessionId').value = generateRandomHash();
 
         function star() {
-            const sessionId = document.getElementById('sessionId').value;
-            console.log(document.getElementById('sessionId').value);
+            var sessionId = document.getElementById('sessionId').value;
+            var systemInstrucction = document.getElementById('systemInstrucction').value;
+            console.log(systemInstrucction);
             fetch("/start-session", {
                 method: "POST",
                 body: JSON.stringify({
                     sessionId: sessionId,
+                    systemInstrucction:systemInstrucction
                 }),
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
