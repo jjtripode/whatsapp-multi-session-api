@@ -5,6 +5,8 @@ const qrcode = require("qrcode");
 const fs = require("fs");
 const bodyParser = require("body-parser");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { convertOggMp3 } = require("./services/converter");
+const { voiceToTextGemini } = require("./services/audioToTextGenimi");
 
 const app = express();
 app.use(bodyParser.json());
@@ -24,15 +26,11 @@ const getGeminiInputTextHttpRequest = async (msg, systemInstrucction) => {
     model: "gemini-1.5-flash",
     systemInstruction: systemInstrucction,
   });
-  console.log(`systemInstrucction ${systemInstrucction}`);
   const prompt = msg;
   const result = await model.generateContent(prompt);
-  console.log(result.response.text());
-
   const receivedData = result.response.text();
-  console.log("Data received:", receivedData);
 
-  return result.response.text();
+  return receivedData;
 };
 
 function createClient(sessionId, systemInstrucction) {
@@ -61,9 +59,8 @@ function createClient(sessionId, systemInstrucction) {
   });
 
   client.on("message", async (msg) => {
-    var botSystemInstrucction = systemInstrucctions[client.authStrategy.clientId];
-    // console.log(botSystemInstrucction);
-    // console.log(msg);
+    var sessionId = client.authStrategy.clientId;
+    var botSystemInstrucction = systemInstrucctions[sessionId];
 
     if (msg.type === "chat") {
       const response = await getGeminiInputTextHttpRequest(
@@ -74,7 +71,30 @@ function createClient(sessionId, systemInstrucction) {
     } else {
       if (msg.hasMedia && msg.type === "ptt") {
         const audio = await msg.downloadMedia();
-        await client.sendMessage(msg.from, audio, { sendAudioAsVoice: true });
+        const pathTmpOgg = `${process.cwd()}/tmp/audio-${sessionId}-${Date.now()}.ogg`;
+        const pathTmpMp3 = `${process.cwd()}/tmp/audio-${sessionId}-${Date.now()}.mp3`;
+
+        const binaryData = Buffer.from(audio.data, "base64");
+        await fs.writeFile(pathTmpOgg, binaryData, function (err) {
+          console.log(err);
+        });
+
+        await convertOggMp3(pathTmpOgg, pathTmpMp3);
+        const text = await voiceToTextGemini(pathTmpMp3, botSystemInstrucction);
+        client.sendMessage(msg.from, text);
+
+        // const media = await msg.downloadMedia().then((data) => {
+        //   const binaryData = Buffer.from(data.data, "base64");
+        //   fs.writeFile(pathTmpOgg, binaryData, function (err) {
+        //     console.log(err);
+        //   });
+        //   console.log(`${pathTmpOgg}-${pathTmpMp3}`);
+        //   // await fs.writeFile(pathTmpOgg, audio);
+        //   convertOggMp3(pathTmpOgg, pathTmpMp3);
+        //   const text = voiceToTextGemini(pathTmpMp3, botSystemInstrucction);
+        //   // await client.sendMessage(msg.from, audio, { sendAudioAsVoice: true });
+        //   client.sendMessage(msg.from, text);
+        // });
       }
     }
   });

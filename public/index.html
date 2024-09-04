@@ -85,9 +85,9 @@
         }
 
         .logo-container {
-            position: absolute;
-            right: 0px;
-            bottom: 0px;
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
             background-color: #e9e9e9;
             border-radius: 8px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
@@ -163,6 +163,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
 
 
     <script>
+         var polling = null;
         function generateRandomHash() {
             return crypto.getRandomValues(new Uint8Array(16))
                 .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '');
@@ -187,11 +188,13 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                 .then(response => response.json())
                 .then((response) => {
                     console.log(response.sessionId);
-                    checkQr(response.sessionId);
+                    polling = setInterval(() => checkQr(response.sessionId), 2000);
                 }
                 );
         }
 
+        var qrReady = false
+       
         function checkQr(sessionId) {
             document.getElementById('popup').classList.add("show");
             fetch('/check-qr/' + sessionId)
@@ -200,8 +203,12 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                     if (data.ready) {
                         document.getElementById('qr-container').innerHTML =
                             '<img src="' + data.qrUrl + '" alt="QR Code" />';
+                            qrReady=true;
                     } else {
-                        setTimeout(checkQr(sessionId), 2000); // Reintentar después de 1 segundo
+                        if(qrReady){
+                            document.getElementById('popup').classList.remove("show");;
+                            clearInterval(polling);
+                        }
                     }
                 });
         }
