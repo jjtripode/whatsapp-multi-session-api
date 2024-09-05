@@ -15,10 +15,39 @@ app.use(express.static("public"));
 
 const PORT = 3000;
 const SESSION_DIR = "./sessions/";
+const INSTRUCTIONS_DIR = "./instructions/"; 
+const AUDIO_DIR = "./audios/"; 
+
 
 if (!fs.existsSync(SESSION_DIR)) {
   fs.mkdirSync(SESSION_DIR);
 }
+
+if (!fs.existsSync(INSTRUCTIONS_DIR)) {
+  fs.mkdirSync(INSTRUCTIONS_DIR);
+}
+
+if (!fs.existsSync(INSTRUCTIONS_DIR)) {
+  fs.mkdirSync(INSTRUCTIONS_DIR);
+}
+
+if (!fs.existsSync(AUDIO_DIR)) {
+  fs.mkdirSync(AUDIO_DIR);
+}
+
+
+const saveSystemInstruction = (sessionId, systemInstruction) => {
+  const filePath = `${INSTRUCTIONS_DIR}${sessionId}.txt`;
+  fs.writeFileSync(filePath, systemInstruction, "utf8");
+};
+
+const loadSystemInstruction = (sessionId) => {
+  const filePath = `${INSTRUCTIONS_DIR}${sessionId}.txt`;
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, "utf8");
+  }
+  return null;
+};
 
 const getGeminiInputTextHttpRequest = async (msg, systemInstrucction) => {
   const genAI = new GoogleGenerativeAI(process.env.API_KEY_GEMINI);
@@ -42,7 +71,7 @@ function createClient(sessionId, systemInstrucction) {
       dataPath: sessionPath,
     }),
     puppeteer: {
-      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Agregado para deshabilitar el sandbox
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     },
   });
 
@@ -51,7 +80,7 @@ function createClient(sessionId, systemInstrucction) {
       if (err) {
         console.error(err);
       } else {
-        client.qrUrl = url; // Guardar el QR como URL de datos
+        client.qrUrl = url; 
       }
     });
   });
@@ -74,8 +103,8 @@ function createClient(sessionId, systemInstrucction) {
     } else {
       if (msg.hasMedia && msg.type === "ptt") {
         const audio = await msg.downloadMedia();
-        const pathTmpOgg = `${process.cwd()}/tmp/audio-${sessionId}-${Date.now()}.ogg`;
-        const pathTmpMp3 = `${process.cwd()}/tmp/audio-${sessionId}-${Date.now()}.mp3`;
+        const pathTmpOgg = `${process.cwd()}/${AUDIO_DIR}/audio-${sessionId}-${Date.now()}.ogg`;
+        const pathTmpMp3 = `${process.cwd()}/${AUDIO_DIR}/audio-${sessionId}-${Date.now()}.mp3`;
 
         const binaryData = Buffer.from(audio.data, "base64");
         await fs.writeFile(pathTmpOgg, binaryData, function (err) {
@@ -100,6 +129,20 @@ function createClient(sessionId, systemInstrucction) {
 const clients = {};
 const systemInstrucctions = {};
 
+const restoreSessions = () => {
+  const sessionFolders = fs.readdirSync(SESSION_DIR);
+  sessionFolders.forEach((sessionId) => {
+    console.log(`Restaurando sesión para: ${sessionId}`);
+    
+    const systemInstruction = loadSystemInstruction(sessionId);
+    if (systemInstruction) {
+      systemInstrucctions[sessionId] = systemInstruction;
+    }
+    
+    clients[sessionId] = createClient(sessionId, systemInstrucctions[sessionId]);
+  });
+};
+
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
@@ -107,9 +150,11 @@ app.get("/", (req, res) => {
 app.post("/start-session", (req, res) => {
   const sessionId = req.body.sessionId;
   const systemInstrucction = req.body.systemInstrucction;
+
   if (!clients[sessionId]) {
     clients[sessionId] = createClient(sessionId, systemInstrucction);
     systemInstrucctions[sessionId] = systemInstrucction;
+    saveSystemInstruction(sessionId, systemInstrucction);
   }
   res.redirect(`/qr/${sessionId}`);
 });
@@ -137,4 +182,4 @@ app.get("/qr/:sessionId", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-});
+  restoreSessions(); });
