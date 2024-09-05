@@ -94,6 +94,10 @@ function createClient(sessionId, systemInstrucction) {
     var sessionId = client.authStrategy.clientId;
     var botSystemInstrucction = systemInstrucctions[sessionId];
 
+    if (msg.isGroup) {
+      return;
+    }
+
     if (msg.type === "chat") {
       const response = await getGeminiInputTextHttpRequest(
         msg.body,
