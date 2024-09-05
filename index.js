@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { convertOggMp3 } = require("./services/converter");
 const { voiceToTextGemini } = require("./services/audioToTextGenimi");
+const { group } = require("console");
 
 const app = express();
 app.use(bodyParser.json());
@@ -93,8 +94,11 @@ function createClient(sessionId, systemInstrucction) {
   client.on("message", async (msg) => {
     var sessionId = client.authStrategy.clientId;
     var botSystemInstrucction = systemInstrucctions[sessionId];
-
-    if (msg.isGroup) {
+    const chat = await msg.getChat();
+    console.log(chat);
+ 
+    // no responde en group
+    if (chat.isGroup) {
       return;
     }
 
