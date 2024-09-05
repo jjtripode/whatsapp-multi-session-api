@@ -193,7 +193,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                 );
         }
 
-        var qrReady = false
+        var finalizarPooling = false
        
         function checkQr(sessionId) {
             document.getElementById('popup').classList.add("show");
@@ -203,9 +203,9 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                     if (data.ready) {
                         document.getElementById('qr-container').innerHTML =
                             '<img src="' + data.qrUrl + '" alt="QR Code" />';
-                            qrReady=true;
+                            finalizarPooling=true;
                     } else {
-                        if(qrReady){
+                        if(finalizarPooling){
                             document.getElementById('popup').classList.remove("show");;
                             clearInterval(polling);
                         }
@@ -214,6 +214,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
         }
 
         function cerrar(event) {
+            clearInterval(polling);;
             document.getElementById('popup').classList.remove("show");;
         }
     </script>

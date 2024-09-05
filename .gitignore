@@ -3,3 +3,5 @@
 node_modules
 sessions
 tmp
+.wwebjs_auth
+.wwebjs_auth

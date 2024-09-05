@@ -41,6 +41,9 @@ function createClient(sessionId, systemInstrucction) {
       clientId: sessionId,
       dataPath: sessionPath,
     }),
+    puppeteer: {
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Agregado para deshabilitar el sandbox
+    },
   });
 
   client.on("qr", (qr) => {
@@ -82,19 +85,6 @@ function createClient(sessionId, systemInstrucction) {
         await convertOggMp3(pathTmpOgg, pathTmpMp3);
         const text = await voiceToTextGemini(pathTmpMp3, botSystemInstrucction);
         client.sendMessage(msg.from, text);
-
-        // const media = await msg.downloadMedia().then((data) => {
-        //   const binaryData = Buffer.from(data.data, "base64");
-        //   fs.writeFile(pathTmpOgg, binaryData, function (err) {
-        //     console.log(err);
-        //   });
-        //   console.log(`${pathTmpOgg}-${pathTmpMp3}`);
-        //   // await fs.writeFile(pathTmpOgg, audio);
-        //   convertOggMp3(pathTmpOgg, pathTmpMp3);
-        //   const text = voiceToTextGemini(pathTmpMp3, botSystemInstrucction);
-        //   // await client.sendMessage(msg.from, audio, { sendAudioAsVoice: true });
-        //   client.sendMessage(msg.from, text);
-        // });
       }
     }
   });
