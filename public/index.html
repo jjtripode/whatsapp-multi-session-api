@@ -122,9 +122,27 @@
             margin: 10% auto;
             padding: 20px;
             border: 1px solid #888888;
-            width: 30%;
             font-weight: bolder;
         }
+
+        @media (min-width: 600px) {
+            .popup-content {
+                width: 30%;
+            }
+
+            .logo-container img {
+                height: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .logo-container img {
+                height: 56px;
+            }
+
+            .logo-container {
+                bottom: 7px;
+            }
     </style>
 </head>
 
@@ -158,12 +176,12 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
         </form>
     </div>
     <div class="logo-container">
-        <img src="images/logo.jpeg" alt="Develone Logo">
+        <img class="logo" src="images/logo.jpeg" alt="Develone Logo">
     </div>
 
 
     <script>
-         var polling = null;
+        var polling = null;
         function generateRandomHash() {
             return crypto.getRandomValues(new Uint8Array(16))
                 .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '');
@@ -179,7 +197,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                 method: "POST",
                 body: JSON.stringify({
                     sessionId: sessionId,
-                    systemInstrucction:systemInstrucction
+                    systemInstrucction: systemInstrucction
                 }),
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
@@ -194,7 +212,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
         }
 
         var finalizarPooling = false
-       
+
         function checkQr(sessionId) {
             document.getElementById('popup').classList.add("show");
             fetch('/check-qr/' + sessionId)
@@ -203,9 +221,9 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                     if (data.ready) {
                         document.getElementById('qr-container').innerHTML =
                             '<img src="' + data.qrUrl + '" alt="QR Code" />';
-                            finalizarPooling=true;
+                        finalizarPooling = true;
                     } else {
-                        if(finalizarPooling){
+                        if (finalizarPooling) {
                             document.getElementById('popup').classList.remove("show");;
                             clearInterval(polling);
                         }
