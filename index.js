@@ -188,6 +188,46 @@ app.get("/qr/:sessionId", (req, res) => {
   res.end(JSON.stringify({ sessionId: sessionId }));
 });
 
+app.get("/broadcast-ui", (req, res) => {
+  res.sendFile(__dirname + "/public/broadcast.html");
+});
+
+app.post("/broadcast", async (req, res) => {
+  const { sessionId, message, contactList } = req.body;
+  const client = clients[sessionId];
+  if (!client) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  try {
+    let contacts;
+
+    if (contactList && Array.isArray(contactList)) {
+      const allContacts = await client.getContacts();
+      console.log(allContacts);
+      const allContactIds = allContacts.map((contact) => contact.id._serialized);
+
+      contacts = allContactIds.filter((contactNumber) =>
+        contactList.some((number) => contactNumber.includes(number))
+      );
+
+      for (const contact of contacts) {
+        await client.sendMessage(contact, message);
+      }
+    } 
+
+    res.json({
+      success: true,
+      message: `Broadcast sent to ${contacts.length} contacts.`,
+      invalidContacts: contactList?.filter((number) => !contacts.includes(number)) || [],
+    });
+  } catch (error) {
+    console.error("Error in broadcast:", error);
+    res.status(500).json({ error: "Failed to send broadcast" });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   restoreSessions(); });

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broadcast WhatsApp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Broadcast WhatsApp</h1>
+    <form id="broadcastForm">
+      <label for="sessionId">Session ID</label>
+      <input type="text" id="sessionId" name="sessionId" placeholder="Ingrese el ID de la sesión" required>
+
+      <label for="message">Mensaje</label>
+      <textarea id="message" name="message" placeholder="Escribe el mensaje que deseas enviar" rows="5" required></textarea>
+
+      <label for="contactList">Lista de contactos (opcional, separados por comas)</label>
+      <textarea id="contactList" name="contactList" placeholder="123456789@c.us,987654321@c.us"></textarea>
+
+      <button type="submit">Enviar Broadcast</button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("broadcastForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const sessionId = document.getElementById("sessionId").value;
+      const message = document.getElementById("message").value;
+      const contactList = document.getElementById("contactList").value
+        ? document.getElementById("contactList").value.split(",").map(c => c.trim())
+        : null;
+
+      const resultDiv = document.getElementById("result");
+
+      try {
+        const response = await fetch("/broadcast", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId, message, contactList }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          resultDiv.innerHTML = `<strong>Success:</strong> ${result.message}`;
+          resultDiv.style.color = "green";
+        } else {
+          resultDiv.innerHTML = `<strong>Error:</strong> ${result.error}`;
+          resultDiv.style.color = "red";
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<strong>Error:</strong> No se pudo enviar el broadcast`;
+        resultDiv.style.color = "red";
+      }
+    });
+  </script>
+</body>
+</html>
