@@ -18,7 +18,7 @@ const PORT = 3000;
 const SESSION_DIR = "./sessions/";
 const INSTRUCTIONS_DIR = "./instructions/"; 
 const AUDIO_DIR = "./audios/"; 
-
+const GROUP_RESPONSE_DIR = "./group_responses/";
 
 if (!fs.existsSync(SESSION_DIR)) {
   fs.mkdirSync(SESSION_DIR);
@@ -36,10 +36,18 @@ if (!fs.existsSync(AUDIO_DIR)) {
   fs.mkdirSync(AUDIO_DIR);
 }
 
+if (!fs.existsSync(GROUP_RESPONSE_DIR)){
+  fs.mkdirSync(GROUP_RESPONSE_DIR);
+} 
+
 
 const saveSystemInstruction = (sessionId, systemInstruction) => {
   const filePath = `${INSTRUCTIONS_DIR}${sessionId}.txt`;
   fs.writeFileSync(filePath, systemInstruction, "utf8");
+};
+
+const saveGroupResponse = (sessionId, allowGroupResponse) => {
+  fs.writeFileSync(`${GROUP_RESPONSE_DIR}${sessionId}.txt`, allowGroupResponse.toString(), "utf8");
 };
 
 const loadSystemInstruction = (sessionId) => {
@@ -48,6 +56,11 @@ const loadSystemInstruction = (sessionId) => {
     return fs.readFileSync(filePath, "utf8");
   }
   return null;
+};
+
+const loadGroupResponse = (sessionId) => {
+  const filePath = `${GROUP_RESPONSE_DIR}${sessionId}.txt`;
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") === "true" : false;
 };
 
 const getGeminiInputTextHttpRequest = async (msg, systemInstrucction) => {
@@ -93,12 +106,12 @@ function createClient(sessionId, systemInstrucction) {
 
   client.on("message", async (msg) => {
     var sessionId = client.authStrategy.clientId;
-    var botSystemInstrucction = systemInstrucctions[sessionId];
+    var botSystemInstrucction = systemInstructions[sessionId];
     const chat = await msg.getChat();
     console.log(chat);
  
     // no responde en group
-    if (chat.isGroup) {
+    if (chat.isGroup && !groupResponses[sessionId]) {
       return;
     }
 
@@ -135,7 +148,8 @@ function createClient(sessionId, systemInstrucction) {
 }
 
 const clients = {};
-const systemInstrucctions = {};
+const systemInstructions = {};
+const groupResponses = {};
 
 const restoreSessions = () => {
   const sessionFolders = fs.readdirSync(SESSION_DIR);
@@ -144,10 +158,12 @@ const restoreSessions = () => {
     
     const systemInstruction = loadSystemInstruction(sessionId);
     if (systemInstruction) {
-      systemInstrucctions[sessionId] = systemInstruction;
+      systemInstructions[sessionId] = systemInstruction;
     }
+    const allowGroupResponse = loadGroupResponse(sessionId);
+    groupResponses[sessionId] = allowGroupResponse;
     
-    clients[sessionId] = createClient(sessionId, systemInstrucctions[sessionId]);
+    clients[sessionId] = createClient(sessionId, systemInstructions[sessionId]);
   });
 };
 
@@ -158,11 +174,14 @@ app.get("/", (req, res) => {
 app.post("/start-session", (req, res) => {
   const sessionId = req.body.sessionId;
   const systemInstrucction = req.body.systemInstrucction;
+  const allowGroupResponse = req.body.allowGroupResponse;
 
   if (!clients[sessionId]) {
     clients[sessionId] = createClient(sessionId, systemInstrucction);
-    systemInstrucctions[sessionId] = systemInstrucction;
+    systemInstructions[sessionId] = systemInstrucction;
     saveSystemInstruction(sessionId, systemInstrucction);
+    groupResponses[sessionId] = allowGroupResponse;
+    saveGroupResponse(sessionId, allowGroupResponse);
   }
   res.redirect(`/qr/${sessionId}`);
 });
@@ -227,6 +246,48 @@ app.post("/broadcast", async (req, res) => {
   }
 });
 
+app.get("/admin", (req, res) => res.sendFile(__dirname + "/public/admin.html"));
+
+app.get("/sessions", (req, res) => {
+  res.json(Object.keys(clients).map(sessionId => ({
+    sessionId,
+    systemInstruction: systemInstructions[sessionId],
+    allowGroupResponse: groupResponses[sessionId]
+  })));
+});
+
+app.post("/update-session", (req, res) => {
+  const sessionId = req.body.sessionId;
+  const systemInstrucction = req.body.systemInstrucction;
+  const allowGroupResponse = req.body.allowGroupResponse;
+
+  if (clients[sessionId]) {
+    systemInstructions[sessionId] = systemInstrucction;
+    groupResponses[sessionId] = allowGroupResponse;
+
+    saveSystemInstruction(sessionId, systemInstruction);
+    saveGroupResponse(sessionId, allowGroupResponse);
+  }
+
+  res.json({ success: true });
+});
+
+app.post("/end-session", (req, res) => {
+  const { sessionId } = req.body;
+
+  if (clients[sessionId]) {
+    clients[sessionId].destroy();
+    delete clients[sessionId];
+    delete systemInstructions[sessionId];
+    delete groupResponses[sessionId];
+
+    fs.rmSync(`${SESSION_DIR}${sessionId}`, { recursive: true, force: true });
+    fs.unlinkSync(`${INSTRUCTIONS_DIR}${sessionId}.txt`);
+    fs.unlinkSync(`${GROUP_RESPONSE_DIR}${sessionId}.txt`);
+  }
+
+  res.json({ success: true });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -170,7 +170,9 @@
             <textarea id="systemInstrucction" name="systemInstrucction">
 Eres un vendedor de productos online, tu catago esta disponible en esta url: www.tupagina.com. La forma de de pago es por qr, mercadopago:alias MiAlias.MercadoPago, Modo:MiAlias.Modo, transferencia:Mi.Alias.Banco. Si consulta por un producto que aun no recibio pregunta por el idenfificador del producto. Si consulta por un producto ya adquirido pregunta cual es motivo y solicita que te de mas detalle. El horario de atencion es de lun a vier de 9am a 19pm...
             </textarea>
-
+            <label for="allowGroupResponse">
+                <input type="checkbox" id="allowGroupResponse" name="allowGroupResponse"> Responder en grupos
+            </label>
             <!-- <button type="submit">Comenzar</button> -->
             <button type="button" onclick="star()">Comenzar</button>
         </form>
@@ -192,12 +194,15 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
         function star() {
             var sessionId = document.getElementById('sessionId').value;
             var systemInstrucction = document.getElementById('systemInstrucction').value;
+            var allowGroupResponse = document.getElementById('allowGroupResponse').checked;
             console.log(systemInstrucction);
+            console.log(allowGroupResponse);
             fetch("/start-session", {
                 method: "POST",
                 body: JSON.stringify({
                     sessionId: sessionId,
-                    systemInstrucction: systemInstrucction
+                    systemInstrucction: systemInstrucction,
+                    allowGroupResponse: allowGroupResponse,
                 }),
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"

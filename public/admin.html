@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración de Sesiones</title>
+</head>
+<body>
+    <h1>Administración de Sesiones</h1>
+    <ul id="session-list"></ul>
+
+    <script>
+        async function loadSessions() {
+            const response = await fetch("/sessions");
+            const sessions = await response.json();
+            const sessionList = document.getElementById("session-list");
+            sessionList.innerHTML = "";
+
+            sessions.forEach(session => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <strong>${session.sessionId}</strong>
+                    <button onclick="endSession('${session.sessionId}')">Finalizar</button>
+                    <input type="checkbox" ${session.allowGroupResponse ? "checked" : ""} 
+                        onchange="updateSession('${session.sessionId}', this.checked)">
+                `;
+                sessionList.appendChild(li);
+            });
+        }
+
+        async function endSession(sessionId) {
+            await fetch("/end-session", { method: "POST", body: JSON.stringify({ sessionId }), headers: { "Content-Type": "application/json" } });
+            loadSessions();
+        }
+
+        async function updateSession(sessionId, allowGroupResponse) {
+            await fetch("/update-session", { method: "POST", body: JSON.stringify({ sessionId, allowGroupResponse }), headers: { "Content-Type": "application/json" } });
+        }
+
+        loadSessions();
+    </script>
+</body>
+</html>
