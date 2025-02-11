@@ -63,11 +63,11 @@ const loadGroupResponse = (sessionId) => {
   return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") === "true" : false;
 };
 
-const getGeminiInputTextHttpRequest = async (msg, systemInstrucction) => {
+const getGeminiInputTextHttpRequest = async (msg, systemInstruction) => {
   const genAI = new GoogleGenerativeAI(process.env.API_KEY_GEMINI);
   const model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
-    systemInstruction: systemInstrucction,
+    systemInstruction: systemInstruction,
   });
   const prompt = msg;
   const result = await model.generateContent(prompt);
@@ -76,7 +76,7 @@ const getGeminiInputTextHttpRequest = async (msg, systemInstrucction) => {
   return receivedData;
 };
 
-function createClient(sessionId, systemInstrucction) {
+function createClient(sessionId, systemInstruction) {
   const sessionPath = `${SESSION_DIR}${sessionId}`;
 
   const client = new Client({
@@ -106,7 +106,7 @@ function createClient(sessionId, systemInstrucction) {
 
   client.on("message", async (msg) => {
     var sessionId = client.authStrategy.clientId;
-    var botSystemInstrucction = systemInstructions[sessionId];
+    var botsystemInstruction = systemInstructions[sessionId];
     const chat = await msg.getChat();
     console.log(chat);
  
@@ -118,7 +118,7 @@ function createClient(sessionId, systemInstrucction) {
     if (msg.type === "chat") {
       const response = await getGeminiInputTextHttpRequest(
         msg.body,
-        botSystemInstrucction
+        botsystemInstruction
       );
       client.sendMessage(msg.from, response);
     } else {
@@ -133,7 +133,7 @@ function createClient(sessionId, systemInstrucction) {
         });
 
         await convertOggMp3(pathTmpOgg, pathTmpMp3);
-        const text = await voiceToTextGemini(pathTmpMp3, botSystemInstrucction);
+        const text = await voiceToTextGemini(pathTmpMp3, botsystemInstruction);
         client.sendMessage(msg.from, text);
       }
     }
@@ -173,13 +173,13 @@ app.get("/", (req, res) => {
 
 app.post("/start-session", (req, res) => {
   const sessionId = req.body.sessionId;
-  const systemInstrucction = req.body.systemInstrucction;
+  const systemInstruction = req.body.systemInstruction;
   const allowGroupResponse = req.body.allowGroupResponse;
 
   if (!clients[sessionId]) {
-    clients[sessionId] = createClient(sessionId, systemInstrucction);
-    systemInstructions[sessionId] = systemInstrucction;
-    saveSystemInstruction(sessionId, systemInstrucction);
+    clients[sessionId] = createClient(sessionId, systemInstruction);
+    systemInstructions[sessionId] = systemInstruction;
+    saveSystemInstruction(sessionId, systemInstruction);
     groupResponses[sessionId] = allowGroupResponse;
     saveGroupResponse(sessionId, allowGroupResponse);
   }
@@ -258,11 +258,14 @@ app.get("/sessions", (req, res) => {
 
 app.post("/update-session", (req, res) => {
   const sessionId = req.body.sessionId;
-  const systemInstrucction = req.body.systemInstrucction;
+  const systemInstruction = req.body.systemInstruction;
   const allowGroupResponse = req.body.allowGroupResponse;
+ 
+  console.log(systemInstruction);
+  console.log(allowGroupResponse);
 
   if (clients[sessionId]) {
-    systemInstructions[sessionId] = systemInstrucction;
+    systemInstructions[sessionId] = systemInstruction;
     groupResponses[sessionId] = allowGroupResponse;
 
     saveSystemInstruction(sessionId, systemInstruction);
@@ -274,6 +277,7 @@ app.post("/update-session", (req, res) => {
 
 app.post("/end-session", (req, res) => {
   const { sessionId } = req.body;
+  console.log("end-session:" + sessionId);
 
   if (clients[sessionId]) {
     clients[sessionId].destroy();
@@ -281,14 +285,53 @@ app.post("/end-session", (req, res) => {
     delete systemInstructions[sessionId];
     delete groupResponses[sessionId];
 
-    fs.rmSync(`${SESSION_DIR}${sessionId}`, { recursive: true, force: true });
-    fs.unlinkSync(`${INSTRUCTIONS_DIR}${sessionId}.txt`);
-    fs.unlinkSync(`${GROUP_RESPONSE_DIR}${sessionId}.txt`);
+    const sessionPath = `${SESSION_DIR}${sessionId}`;
+    const instructionsPath = `${INSTRUCTIONS_DIR}${sessionId}.txt`;
+    const groupResponsePath = `${GROUP_RESPONSE_DIR}${sessionId}.txt`;
+
+    // Verificar si existen antes de borrar
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+    }
+
+    if (fs.existsSync(instructionsPath)) {
+      fs.unlinkSync(instructionsPath);
+    }
+
+    if (fs.existsSync(groupResponsePath)) {
+      fs.unlinkSync(groupResponsePath);
+    }
   }
 
   res.json({ success: true });
 });
 
+app.get('/contacts/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  console.log(sessionId);
+
+  if (!clients[sessionId]) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+  }
+
+  try {
+      const client = clients[sessionId];
+      const contacts = await client.getContacts();
+
+      // Filtrar solo usuarios normales (@c.us)
+      const users = contacts
+          .filter(contact => contact.id.server === 'c.us') // Solo @c.us
+          .map(contact => ({
+              id: contact.id._serialized,
+              name: contact.name || contact.pushname || contact.number
+          }));
+
+      res.json(users);
+  } catch (error) {
+      console.error('Error obteniendo contactos:', error);
+      res.status(500).json({ error: 'Error obteniendo contactos' });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   restoreSessions(); });

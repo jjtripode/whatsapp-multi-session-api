@@ -3,10 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administración de Sesiones</title>
+    <title>Gestión de Sesiones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        #session-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #session-list li {
+            background-color: #fff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #session-list strong {
+            font-size: 1.2em;
+            color: #007bff;
+        }
+
+        button, input[type="button"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover, input[type="button"]:hover {
+            background-color: #0056b3;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        textarea {
+            width: 300px;
+            height: 80px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            resize: none;
+        }
+
+        label {
+            font-size: 1em;
+            margin-left: 5px;
+        }
+
+        .session-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Administración de Sesiones</h1>
+
+    <h1>Gestión de Sesiones</h1>
     <ul id="session-list"></ul>
 
     <script>
@@ -18,26 +95,71 @@
 
             sessions.forEach(session => {
                 const li = document.createElement("li");
+                li.classList.add('session-item');
                 li.innerHTML = `
-                    <strong>${session.sessionId}</strong>
-                    <button onclick="endSession('${session.sessionId}')">Finalizar</button>
-                    <input type="checkbox" ${session.allowGroupResponse ? "checked" : ""} 
-                        onchange="updateSession('${session.sessionId}', this.checked)">
+                    <div>
+                        <strong>${session.sessionId}</strong>
+                        <div class="actions">
+                            <button onclick="endSession('${session.sessionId}')">Finalizar</button>
+                            <div>
+                                <input type="checkbox" id="groupResponse-${session.sessionId}" ${session.allowGroupResponse ? "checked" : ""}>
+                                <label for="groupResponse-${session.sessionId}">Permitir respuestas en grupos</label>
+                            </div>
+                            <textarea id="systemInstruction-${session.sessionId}">${session.systemInstruction}</textarea> 
+                            <input type="button" value="Actualizar" onclick="actualizarSession('${session.sessionId}')" />
+                        </div>
+                    </div>
                 `;
                 sessionList.appendChild(li);
             });
         }
 
+        async function actualizarSession(sessionId) {
+            const systemInstruction = document.getElementById(`systemInstruction-${sessionId}`).value;
+            const allowGroupResponse = document.getElementById(`groupResponse-${sessionId}`).checked;
+
+            const response = await fetch("/update-session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sessionId,
+                    systemInstruction: systemInstruction,
+                    allowGroupResponse
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert("Sesión actualizada correctamente.");
+            } else {
+                alert("Error al actualizar la sesión.");
+            }
+        }
+
         async function endSession(sessionId) {
-            await fetch("/end-session", { method: "POST", body: JSON.stringify({ sessionId }), headers: { "Content-Type": "application/json" } });
-            loadSessions();
+            const response = await fetch("/end-session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ sessionId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert(`Sesión ${sessionId} finalizada correctamente.`);
+                // Recargar sesiones después de finalizar la sesión
+                loadSessions();
+            } else {
+                alert("Error al finalizar la sesión.");
+            }
         }
 
-        async function updateSession(sessionId, allowGroupResponse) {
-            await fetch("/update-session", { method: "POST", body: JSON.stringify({ sessionId, allowGroupResponse }), headers: { "Content-Type": "application/json" } });
-        }
-
-        loadSessions();
+        // Cargar sesiones al iniciar
+        document.addEventListener("DOMContentLoaded", loadSessions);
     </script>
+
 </body>
 </html>
