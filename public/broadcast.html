@@ -125,12 +125,11 @@
 
 document.getElementById("sessionId").addEventListener("input", async function () {
     if (this.value.trim().length === 32) { 
-            await loadContacts();
+            await loadContacts(this.value.trim());
         }
     });
-async function loadContacts() {
+async function loadContacts(sessionId) {
             try {
-              const sessionId = "Ver como obtener el sessionID si es por url o se ingresa a mano"
                 let response = await fetch('http://localhost:3000/contacts/' + sessionId);
                 let contacts = await response.json();
                 let contactList = document.getElementById('contact-list');
