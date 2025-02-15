@@ -231,7 +231,7 @@ app.post("/broadcast", async (req, res) => {
 
   try {
     let contacts;
-    await client.initialize();
+    
     if (contactList && Array.isArray(contactList)) {
       const allContacts = await client.getContacts();
       const allContactIds = allContacts.map((contact) => contact.id._serialized);
@@ -242,7 +242,7 @@ app.post("/broadcast", async (req, res) => {
 
       for (const contact of contacts) {
         console.log(`${contact} ${message}`)
-        //await client.sendMessage(contact, message);
+        await client.sendMessage(contact, message);
       }
     } 
 
