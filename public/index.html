@@ -167,7 +167,7 @@
             <input type="text" id="sessionId" name="sessionId" readonly>
 
             <label for="userText">Personaliza tu bot:</label>
-            <textarea id="systemInstrucction" name="systemInstrucction">
+            <textarea id="systemInstruction" name="systemInstruction">
 Eres un vendedor de productos online, tu catago esta disponible en esta url: www.tupagina.com. La forma de de pago es por qr, mercadopago:alias MiAlias.MercadoPago, Modo:MiAlias.Modo, transferencia:Mi.Alias.Banco. Si consulta por un producto que aun no recibio pregunta por el idenfificador del producto. Si consulta por un producto ya adquirido pregunta cual es motivo y solicita que te de mas detalle. El horario de atencion es de lun a vier de 9am a 19pm...
             </textarea>
             <label for="allowGroupResponse">
@@ -193,15 +193,15 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
 
         function star() {
             var sessionId = document.getElementById('sessionId').value;
-            var systemInstrucction = document.getElementById('systemInstrucction').value;
+            var systemInstruction = document.getElementById('systemInstruction').value;
             var allowGroupResponse = document.getElementById('allowGroupResponse').checked;
-            console.log(systemInstrucction);
+            console.log(systemInstruction);
             console.log(allowGroupResponse);
             fetch("/start-session", {
                 method: "POST",
                 body: JSON.stringify({
                     sessionId: sessionId,
-                    systemInstrucction: systemInstrucction,
+                    systemInstruction: systemInstruction,
                     allowGroupResponse: allowGroupResponse,
                 }),
                 headers: {

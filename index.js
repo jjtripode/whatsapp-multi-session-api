@@ -104,6 +104,13 @@ function createClient(sessionId, systemInstruction) {
     client.qrUrl = null;
   });
 
+  client.on('change_state', state => {
+    console.log('Estado del cliente:', state);
+    if (state === 'DISCONNECTED') {
+        console.log('Reiniciando cliente...');
+    }
+  });
+
   client.on("message", async (msg) => {
     var sessionId = client.authStrategy.clientId;
     var botsystemInstruction = systemInstructions[sessionId];
@@ -227,7 +234,6 @@ app.post("/broadcast", async (req, res) => {
     await client.initialize();
     if (contactList && Array.isArray(contactList)) {
       const allContacts = await client.getContacts();
-      console.log(allContacts);
       const allContactIds = allContacts.map((contact) => contact.id._serialized);
 
       contacts = allContactIds.filter((contactNumber) =>
@@ -235,7 +241,7 @@ app.post("/broadcast", async (req, res) => {
       );
 
       for (const contact of contacts) {
-        //await client.sendMessage(contact, message);
+        console.log(`${contact} ${message}`)
         //await client.sendMessage(contact, message);
       }
     } 
@@ -280,7 +286,7 @@ app.post("/update-session", (req, res) => {
   res.json({ success: true });
 });
 
-app.post("/end-session", (req, res) => {
+app.post("/end-session", async (req, res) => {
   const { sessionId } = req.body;
   console.log("end-session:" + sessionId);
 
@@ -317,6 +323,8 @@ app.post("/end-session", (req, res) => {
       fs.chmodSync(groupResponsePath, 0o777);
       fs.unlinkSync(groupResponsePath, { recursive: true, force: true });
     }
+
+    console.log(`Archivos de sesión ${sessionId} eliminados.`);
   }
 
   res.json({ success: true });
@@ -324,7 +332,6 @@ app.post("/end-session", (req, res) => {
 
 app.get('/contacts/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
-  console.log(sessionId);
 
   if (!clients[sessionId]) {
       return res.status(404).json({ error: 'Sesión no encontrada' });
@@ -332,7 +339,7 @@ app.get('/contacts/:sessionId', async (req, res) => {
 
   try {
       const client = clients[sessionId];
-      client.con
+      
       console.log(`client.info ${client.info}`);
       const contacts = await client.getContacts();
 

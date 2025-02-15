@@ -146,6 +146,13 @@ async function loadContacts(sessionId) {
                     li.appendChild(document.createTextNode(` ${contact.id} ${contact.name}`));
                     li.addEventListener('click', () => {
                         checkbox.checked = !checkbox.checked;
+                        let selectedContacts = [];
+                        document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
+                            selectedContacts.push(checkbox.value);
+                        });
+                        console.log(selectedContacts)
+                        let textArea = document.getElementById('contactList');
+                        textArea.value =  selectedContacts;
                     });
                     contactList.appendChild(li);
                 });
