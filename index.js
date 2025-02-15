@@ -143,6 +143,10 @@ function createClient(sessionId, systemInstruction) {
     console.log(message.body);
   });
 
+  client.on('disconnected', (reason) => {
+    console.log(`Cliente desconectado (${reason}). Reiniciando sesión...`);
+    client.initialize(); // Reintenta la conexión
+});
   client.initialize();
   return client;
 }
@@ -220,7 +224,7 @@ app.post("/broadcast", async (req, res) => {
 
   try {
     let contacts;
-
+    await client.initialize();
     if (contactList && Array.isArray(contactList)) {
       const allContacts = await client.getContacts();
       console.log(allContacts);
@@ -231,7 +235,8 @@ app.post("/broadcast", async (req, res) => {
       );
 
       for (const contact of contacts) {
-        await client.sendMessage(contact, message);
+        //await client.sendMessage(contact, message);
+        //await client.sendMessage(contact, message);
       }
     } 
 
@@ -280,7 +285,15 @@ app.post("/end-session", (req, res) => {
   console.log("end-session:" + sessionId);
 
   if (clients[sessionId]) {
-    clients[sessionId].destroy();
+    
+    try{
+      console.log(clients[sessionId].info);
+      if(clients[sessionId].info){
+        clients[sessionId].destroy();
+      }
+    }catch (error) {
+      console.error("Error finalizando session:", error);
+    }
     delete clients[sessionId];
     delete systemInstructions[sessionId];
     delete groupResponses[sessionId];
@@ -291,15 +304,18 @@ app.post("/end-session", (req, res) => {
 
     // Verificar si existen antes de borrar
     if (fs.existsSync(sessionPath)) {
+      fs.chmodSync(sessionPath, 0o777);
       fs.rmSync(sessionPath, { recursive: true, force: true });
     }
 
     if (fs.existsSync(instructionsPath)) {
-      fs.unlinkSync(instructionsPath);
+      fs.chmodSync(instructionsPath, 0o777);
+      fs.unlinkSync(instructionsPath, { recursive: true, force: true });
     }
 
     if (fs.existsSync(groupResponsePath)) {
-      fs.unlinkSync(groupResponsePath);
+      fs.chmodSync(groupResponsePath, 0o777);
+      fs.unlinkSync(groupResponsePath, { recursive: true, force: true });
     }
   }
 
@@ -316,6 +332,8 @@ app.get('/contacts/:sessionId', async (req, res) => {
 
   try {
       const client = clients[sessionId];
+      client.con
+      console.log(`client.info ${client.info}`);
       const contacts = await client.getContacts();
 
       // Filtrar solo usuarios normales (@c.us)
