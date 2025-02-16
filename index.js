@@ -8,8 +8,11 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { convertOggMp3 } = require("./services/converter");
 const { voiceToTextGemini } = require("./services/audioToTextGenimi");
 const { group } = require("console");
+const path = require("path");
+const multer = require("multer");
 
 const app = express();
+const upload = multer({ dest: "uploads/" });
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -28,18 +31,13 @@ if (!fs.existsSync(INSTRUCTIONS_DIR)) {
   fs.mkdirSync(INSTRUCTIONS_DIR);
 }
 
-if (!fs.existsSync(INSTRUCTIONS_DIR)) {
-  fs.mkdirSync(INSTRUCTIONS_DIR);
-}
-
 if (!fs.existsSync(AUDIO_DIR)) {
   fs.mkdirSync(AUDIO_DIR);
 }
 
 if (!fs.existsSync(GROUP_RESPONSE_DIR)){
   fs.mkdirSync(GROUP_RESPONSE_DIR);
-} 
-
+}
 
 const saveSystemInstruction = (sessionId, systemInstruction) => {
   const filePath = `${INSTRUCTIONS_DIR}${sessionId}.txt`;
@@ -74,6 +72,20 @@ const getGeminiInputTextHttpRequest = async (msg, systemInstruction) => {
   const receivedData = result.response.text();
 
   return receivedData;
+};
+
+// Nuevo método para manejar la sesión en JSON
+const SESSION_FILE_PATH = "./session.json"; // Ruta donde guardarás la sesión
+
+const saveSession = (session) => {
+  fs.writeFileSync(SESSION_FILE_PATH, JSON.stringify(session));
+};
+
+const loadSession = () => {
+  if (fs.existsSync(SESSION_FILE_PATH)) {
+    return JSON.parse(fs.readFileSync(SESSION_FILE_PATH));
+  }
+  return null;
 };
 
 function createClient(sessionId, systemInstruction) {
@@ -116,7 +128,7 @@ function createClient(sessionId, systemInstruction) {
     var botsystemInstruction = systemInstructions[sessionId];
     const chat = await msg.getChat();
     console.log(chat);
- 
+
     // no responde en group
     if (chat.isGroup && !groupResponses[sessionId]) {
       return;
@@ -152,8 +164,13 @@ function createClient(sessionId, systemInstruction) {
 
   client.on('disconnected', (reason) => {
     console.log(`Cliente desconectado (${reason}). Reiniciando sesión...`);
-    client.initialize(); // Reintenta la conexión
-});
+    client.initialize(); 
+  });
+
+  client.on('authenticated', (session) => {
+    console.log(`authenticated ${session}`)
+  });
+
   client.initialize();
   return client;
 }
@@ -178,6 +195,7 @@ const restoreSessions = () => {
   });
 };
 
+// Rutas de Express para manejar las solicitudes de la aplicación
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
@@ -222,8 +240,10 @@ app.get("/broadcast-ui", (req, res) => {
   res.sendFile(__dirname + "/public/broadcast.html");
 });
 
-app.post("/broadcast", async (req, res) => {
-  const { sessionId, message, contactList } = req.body;
+app.post("/broadcast", upload.none(), async (req, res) => {
+  const { sessionId, message, contactListSelected } = req.body;
+  const contactList = JSON.parse(contactListSelected);
+ 
   const client = clients[sessionId];
   if (!client) {
     return res.status(404).json({ error: "Session not found" });
@@ -231,7 +251,13 @@ app.post("/broadcast", async (req, res) => {
 
   try {
     let contacts;
-    
+
+    const client = clients[sessionId];
+    if(!client.info){
+      client.initialize();
+    }
+    // console.log(JSON.stringify(client.info, null, 2));
+
     if (contactList && Array.isArray(contactList)) {
       const allContacts = await client.getContacts();
       const allContactIds = allContacts.map((contact) => contact.id._serialized);
@@ -339,8 +365,11 @@ app.get('/contacts/:sessionId', async (req, res) => {
 
   try {
       const client = clients[sessionId];
-      
-      console.log(`client.info ${client.info}`);
+      if(!client.info){
+        client.initialize();
+      }
+      // console.log(JSON.stringify(client.info, null, 2));
+     
       const contacts = await client.getContacts();
 
       // Filtrar solo usuarios normales (@c.us)

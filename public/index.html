@@ -226,10 +226,11 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                     if (data.ready) {
                         document.getElementById('qr-container').innerHTML =
                             '<img src="' + data.qrUrl + '" alt="QR Code" />';
-                        finalizarPooling = true;
+                            clearInterval(polling);
+                            finalizarPooling = true;
                     } else {
                         if (finalizarPooling) {
-                            document.getElementById('popup').classList.remove("show");;
+                            document.getElementById('popup').classList.remove("show");
                             clearInterval(polling);
                         }
                     }

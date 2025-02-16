@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      padding: 20;
+      padding: 20px;
     }
     .container {
       max-width: 600px;
@@ -47,67 +47,64 @@
       background-color: #f9f9f9;
     }
     .contact-list {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 columnas */
-            gap: 20px; /* Espacio entre los items */
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .contact-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-            background: #fff;
-        }
-
-        .contact-item:hover {
-            transform: scale(1.05);
-        }
-
-        .contact-item input {
-            margin-bottom: 8px;
-            transform: scale(1.3);
-        }
-
-        .contact-item span {
-            display: block;
-            font-size: 14px;
-            color: #333;
-            text-align: center;
-            max-width: 120px;
-            word-wrap: break-word;
-        }
-
-        @media (max-width: 768px) {
-            .contact-list {
-                grid-template-columns: repeat(2, 1fr); /* 2 columnas en pantallas más pequeñas */
-            }
-        }
-
-        @media (max-width: 480px) {
-            .contact-list {
-                grid-template-columns: 1fr; /* 1 columna en pantallas muy pequeñas */
-            }
-        }
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .contact-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s;
+      background: #fff;
+    }
+    .contact-item:hover {
+      transform: scale(1.05);
+    }
+    .contact-item input {
+      margin-bottom: 8px;
+      transform: scale(1.3);
+    }
+    .contact-item span {
+      display: block;
+      font-size: 14px;
+      color: #333;
+      text-align: center;
+      max-width: 120px;
+      word-wrap: break-word;
+    }
+    @media (max-width: 768px) {
+      .contact-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 480px) {
+      .contact-list {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Broadcast WhatsApp</h1>
-    <form id="broadcastForm">
+    <form id="broadcastForm" enctype="multipart/form-data">
       <label for="sessionId">Session ID</label>
       <input type="text" id="sessionId" name="sessionId" placeholder="Ingrese el ID de la sesión" required>
 
       <label for="message">Mensaje</label>
       <textarea id="message" name="message" placeholder="Escribe el mensaje que deseas enviar" rows="5" required></textarea>
+
+      <label for="image">Adjuntar imagen (opcional)</label>
+      <input type="file" id="image" name="image" accept="image/*">
 
       <label for="contactList">Lista de contactos (opcional, separados por comas)</label>
       <h3>Selecciona contactos:</h3>
@@ -122,69 +119,70 @@
   </div>
 
   <script>
-
-document.getElementById("sessionId").addEventListener("input", async function () {
-    if (this.value.trim().length === 32) { 
-            await loadContacts(this.value.trim());
-        }
+    document.getElementById("sessionId").addEventListener("input", async function () {
+      if (this.value.trim().length === 32) { 
+        await loadContacts(this.value.trim());
+      }
     });
-async function loadContacts(sessionId) {
-            try {
-                let response = await fetch('http://localhost:3000/contacts/' + sessionId);
-                let contacts = await response.json();
-                let contactList = document.getElementById('contact-list');
 
-                contacts.forEach(contact => {
-                    let li = document.createElement('li');
-                    li.classList.add('contact-item');
-                    let checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = contact.id;
-                    checkbox.classList.add('contact-checkbox');
+    async function loadContacts(sessionId) {
+      try {
+        let response = await fetch('http://localhost:3000/contacts/' + sessionId);
+        let contacts = await response.json();
+        let contactList = document.getElementById('contact-list');
+        contactList.innerHTML = ""; 
 
-                    li.appendChild(checkbox);
-                    li.appendChild(document.createTextNode(` ${contact.id} ${contact.name}`));
-                    li.addEventListener('click', () => {
-                        checkbox.checked = !checkbox.checked;
-                        let selectedContacts = [];
-                        document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
-                            selectedContacts.push(checkbox.value);
-                        });
-                        console.log(selectedContacts)
-                        let textArea = document.getElementById('contactList');
-                        textArea.value =  selectedContacts;
-                    });
-                    contactList.appendChild(li);
-                });
-            } catch (error) {
-                console.error('Error al cargar los contactos:', error);
-            }
-        }
+        contacts.forEach(contact => {
+          let li = document.createElement('li');
+          li.classList.add('contact-item');
+          let checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = contact.id;
+          checkbox.classList.add('contact-checkbox');
+
+          li.appendChild(checkbox);
+          li.appendChild(document.createTextNode(` ${contact.id} ${contact.name}`));
+          li.addEventListener('click', () => {
+            checkbox.checked = !checkbox.checked;
+            let selectedContacts = [];
+            document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
+              selectedContacts.push(checkbox.value);
+            });
+            document.getElementById('contactList').value = selectedContacts.join(', ');
+          });
+          contactList.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Error al cargar los contactos:', error);
+      }
+    }
 
     document.getElementById("broadcastForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      
-      const sessionId = document.getElementById("sessionId").value;
-      const message = document.getElementById("message").value;
 
-      let selectedContacts = [];
-            document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
-                selectedContacts.push(checkbox.value);
-            });
+      const formData = new FormData();
+      formData.append("sessionId", document.getElementById("sessionId").value);
+      formData.append("message", document.getElementById("message").value);
+      
+      const imageFile = document.getElementById("image").files[0];
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
 
       const contactList = document.getElementById("contactList").value
         ? document.getElementById("contactList").value.split(",").map(c => c.trim())
         : null;
+      
+      if (contactList) {
+        formData.append("contactListSelected", JSON.stringify(contactList));
+      }
 
       const resultDiv = document.getElementById("result");
 
       try {
         const response = await fetch("/broadcast", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ sessionId, message, contactList }),
+          body: formData,
         });
 
         const result = await response.json();
@@ -202,7 +200,6 @@ async function loadContacts(sessionId) {
       }
     });
 
-    loadContacts();
   </script>
 </body>
 </html>
