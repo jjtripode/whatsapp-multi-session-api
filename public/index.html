@@ -211,7 +211,7 @@ Eres un vendedor de productos online, tu catago esta disponible en esta url: www
                 .then(response => response.json())
                 .then((response) => {
                     console.log(response.sessionId);
-                    polling = setInterval(() => checkQr(response.sessionId), 2000);
+                    polling = setInterval(() => checkQr(response.sessionId), 10000);
                 }
                 );
         }

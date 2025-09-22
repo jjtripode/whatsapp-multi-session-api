@@ -149,7 +149,6 @@
 
             const result = await response.json();
             if (result.success) {
-                alert(`Sesión ${sessionId} finalizada correctamente.`);
                 // Recargar sesiones después de finalizar la sesión
                 loadSessions();
             } else {
