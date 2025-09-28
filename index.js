@@ -814,9 +814,8 @@ app.post("/end-session", async (req, res) => {
   if (clients[sessionId]) {
     try {
       console.log(`🔌 Destruyendo cliente para sesión: ${sessionId}`);
-      if (clients[sessionId].info) {
-        await clients[sessionId].destroy();
-      }
+      await clients[sessionId].logout();
+      await clients[sessionId].destroy();
     } catch (error) {
       console.error(`❌ Error finalizando sesión ${sessionId}:`, error);
     }
