@@ -8,6 +8,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { convertOggMp3 } = require("./services/converter");
 const { voiceToTextGemini } = require("./services/audioToTextGenimi");
 const { group } = require("console");
+const { v4: uuidv4 } = require('uuid');
 const path = require("path");
 const multer = require("multer");
 
@@ -604,8 +605,33 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
+app.post("/init-session", (req, res) => {
+  const { systemInstruction, allowGroupResponse } = req.body;
+  const sessionId = uuidv4();;  // Generar ID único basado en timestamp
+  console.log(`🔄 Iniciando nueva sesión: ${sessionId}`);
+  console.log(
+    `📝 Instrucción del sistema: ${systemInstruction?.substring(0, 100)}...`
+  );
+  console.log(`👥 Respuesta en grupos permitida: ${allowGroupResponse}`);
+
+  if (!clients[sessionId]) {
+    clients[sessionId] = createClient(sessionId, systemInstruction);
+    systemInstructions[sessionId] =
+      systemInstruction || "Eres un asistente útil.";
+    saveSystemInstruction(sessionId, systemInstructions[sessionId]);
+    groupResponses[sessionId] = allowGroupResponse || false;
+    saveGroupResponse(sessionId, groupResponses[sessionId]);
+    console.log(`✅ Sesión ${sessionId} creada exitosamente`);
+  } else {
+    console.log(`⚠️  Sesión ${sessionId} ya existe`);
+  }
+
+  res.json({ success: true, sessionId: sessionId });
+});
+
 app.post("/start-session", (req, res) => {
-  const { sessionId, systemInstruction, allowGroupResponse } = req.body;
+  const { systemInstruction, allowGroupResponse } = req.body;
+  const sessionId = uuidv4();;  // Generar ID único basado en timestamp
   console.log(`🔄 Iniciando nueva sesión: ${sessionId}`);
   console.log(
     `📝 Instrucción del sistema: ${systemInstruction?.substring(0, 100)}...`
@@ -679,12 +705,7 @@ app.get("/check-qr/:sessionId", (req, res) => {
     // res.json(status);
   } catch (error) {
     console.error(`❌ Error verificando QR para ${sessionId}:`, error);
-    res.status(500).json({
-      ready: false,
-      success: false,
-      error: "Internal server error",
-      sessionId: sessionId,
-    });
+    res.json({ ready: false, qrUrl: '' });
   }
 });
 
@@ -800,8 +821,10 @@ app.post("/update-session", (req, res) => {
     saveSystemInstruction(sessionId, systemInstruction);
     saveGroupResponse(sessionId, allowGroupResponse);
     console.log(`✅ Sesión ${sessionId} actualizada exitosamente`);
+    res.json({ success: true });
   } else {
     console.log(`⚠️  Sesión ${sessionId} no encontrada para actualizar`);
+    res.json({ success: false });
   }
 
   res.json({ success: true });
